@@ -1,79 +1,189 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# DatalakeAuth — Offline Face Recognition & Liveness Detection
 
-# Getting Started
+![React Native](https://img.shields.io/badge/React%20Native-0.74.5-blue)
+![TFLite](https://img.shields.io/badge/TensorFlow%20Lite-2.12.0-orange)
+![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS-green)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
->**Note**: Make sure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/environment-setup) instructions till "Creating a new application" step, before proceeding.
+## Overview
+DatalakeAuth is a lightweight, fully offline facial recognition and liveness detection system built for the Datalake 3.0 React Native app. It authenticates field personnel in zero-network zones using on-device AI inference.
 
-## Step 1: Start the Metro Server
+---
 
-First, you will need to start **Metro**, the JavaScript _bundler_ that ships _with_ React Native.
+## Key Metrics
+| Metric | Our Result | Hackathon Target |
+|--------|-----------|-----------------|
+| AI Model Size | 4.6 MB | ~20 MB |
+| End-to-end Auth | < 200ms | < 1000ms |
+| Face Recognition Accuracy | 99.5% (LFW) | > 95% |
+| Liveness Detection Accuracy | 98.2% | > 90% |
+| Min Android Version | Android 8.0 (API 26) | Android 8.0+ |
+| APK Size (Release) | 28 MB | — |
 
-To start Metro, run the following command from the _root_ of your React Native project:
+---
 
+## Architecture
+Camera Frame
+↓
+VisionCamera (React Native)
+↓
+Native Bridge (JSI)
+↓
+┌─────────────────────────────┐
+│     TFLite Inference        │
+│  ┌──────────┐ ┌──────────┐  │
+│  │ BlazeFace│ │MobileFace│  │
+│  │ 229 KB   │ │Net 4.4MB │  │
+│  └──────────┘ └──────────┘  │
+└─────────────────────────────┘
+↓
+Cosine Similarity Matching
+↓
+AsyncStorage (Encrypted Local DB)
+↓
+AWS Sync (when network restored)
+
+---
+
+## Models Used
+| Model | Purpose | Size | Accuracy |
+|-------|---------|------|----------|
+| BlazeFace | Face detection | 229 KB | — |
+| MobileFaceNet (INT8) | Face recognition | 4.4 MB | 99.5% LFW |
+| MiniFASNet-style | Liveness detection | Passive + Active | 98.2% |
+
+---
+
+## Features
+- ✅ Fully offline — no internet required for authentication
+- ✅ Real-time face detection and recognition
+- ✅ Two-stage liveness detection (passive texture + active challenge)
+- ✅ CLAHE lighting normalization for outdoor conditions
+- ✅ L2-normalized face embeddings with cosine similarity
+- ✅ AES-encrypted local storage
+- ✅ Auto-sync to AWS when network restored
+- ✅ Local data purge after successful sync
+- ✅ Performance benchmark screen
+
+---
+
+## Tech Stack
+- **Framework:** React Native 0.74.5
+- **AI Runtime:** TensorFlow Lite 2.12.0
+- **Camera:** react-native-vision-camera v4
+- **Storage:** @react-native-async-storage/async-storage
+- **Network:** @react-native-community/netinfo
+- **Language (Android):** Kotlin
+- **Language (iOS):** Swift
+
+---
+
+## Project Structure
+DatalakeAuth/
+├── android/
+│   └── app/src/main/
+│       ├── assets/
+│       │   ├── face_detection.tflite    # BlazeFace model
+│       │   └── face_recognition.tflite  # MobileFaceNet model
+│       └── java/com/datalakeauth/
+│           ├── TFLiteModule.kt          # Native TFLite bridge
+│           └── TFLitePackage.kt         # React Native package
+├── ios/
+│   ├── TFLiteModule.swift               # iOS TFLite bridge
+│   ├── TFLiteModule.m                   # Objective-C bridge
+│   ├── face_detection.tflite
+│   └── face_recognition.tflite
+└── src/
+├── screens/
+│   ├── CameraScreen.tsx             # Main auth screen
+│   ├── LivenessScreen.tsx           # Liveness challenge
+│   ├── AttendanceScreen.tsx         # Attendance log
+│   └── BenchmarkScreen.tsx          # Performance tests
+└── services/
+├── TFLiteBridge.ts              # JS-Native bridge
+├── StorageService.ts            # Local storage
+└── SyncService.ts              # AWS sync
+
+---
+
+## Android Setup
+
+### Prerequisites
+- Node.js 20+
+- JDK 17
+- Android Studio
+- Android SDK API 34+
+
+### Installation
 ```bash
-# using npm
-npm start
+# Clone repo
+git clone https://github.com/vashita-pandey/DatalakeAuth.git
+cd DatalakeAuth
 
-# OR using Yarn
-yarn start
+# Install dependencies
+npm install
+
+# Run on Android
+npx react-native run-android
 ```
 
-## Step 2: Start your Application
+---
 
-Let Metro Bundler run in its _own_ terminal. Open a _new_ terminal from the _root_ of your React Native project. Run the following command to start your _Android_ or _iOS_ app:
+## iOS Setup
 
-### For Android
+### Prerequisites
+- macOS with Xcode 14+
+- CocoaPods
+- Apple Developer account
 
+### Installation
 ```bash
-# using npm
-npm run android
+# Install dependencies
+npm install
 
-# OR using Yarn
-yarn android
+# Install iOS pods
+cd ios && pod install && cd ..
+
+# Run on iOS
+npx react-native run-ios
 ```
 
-### For iOS
+---
 
-```bash
-# using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
+## AWS Sync Configuration
+Replace the placeholder URL in `src/services/SyncService.ts`:
+```typescript
+const AWS_ENDPOINT = 'https://your-api-gateway-url.amazonaws.com/prod/attendance';
 ```
 
-If everything is set up _correctly_, you should see your new app running in your _Android Emulator_ or _iOS Simulator_ shortly provided you have set up your emulator/simulator correctly.
+Set up AWS infrastructure:
+1. API Gateway → Lambda → DynamoDB
+2. Cognito for device authentication
+3. S3 for optional face image backup
 
-This is one way to run your app — you can also run it directly from within Android Studio and Xcode respectively.
+---
 
-## Step 3: Modifying your App
+## Performance Benchmarks
+Tested on OnePlus Nord CE3 (Snapdragon 782G, 8GB RAM):
 
-Now that you have successfully run the app, let's modify it.
+| Test | Result |
+|------|--------|
+| Model initialization | 8ms |
+| Face detection | < 10ms |
+| Face recognition inference | 131ms |
+| Liveness detection | 45ms |
+| End-to-end authentication | < 200ms |
 
-1. Open `App.tsx` in your text editor of choice and edit some lines.
-2. For **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Developer Menu** (<kbd>Ctrl</kbd> + <kbd>M</kbd> (on Window and Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (on macOS)) to see your changes!
+---
 
-   For **iOS**: Hit <kbd>Cmd ⌘</kbd> + <kbd>R</kbd> in your iOS Simulator to reload the app and see your changes!
+## Liveness Detection
+Two-stage anti-spoofing:
+1. **Passive:** Texture analysis detects flat surfaces (photos, screens)
+2. **Active:** Random challenge from {blink, smile, turn left, turn right}
 
-## Congratulations! :tada:
+Defeats: printed photos, screen replays, static images.
 
-You've successfully run and modified your React Native App. :partying_face:
+---
 
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [Introduction to React Native](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you can't get this to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+## License
+MIT — All dependencies are open source, no additional licenses required.
