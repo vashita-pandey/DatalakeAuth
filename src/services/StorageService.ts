@@ -1,52 +1,74 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export interface UserEmbedding {
+export interface Employee {
   userId: string;
   name: string;
+  employeeId: string;
+  department: string;
+  designation: string;
+  phoneNumber: string;
   embedding: number[];
   registeredAt: string;
+  photoBase64?: string;
 }
 
 export interface AttendanceRecord {
   id: string;
   userId: string;
   name: string;
+  employeeId: string;
+  department: string;
   timestamp: string;
+  date: string; // YYYY-MM-DD for easy filtering
   confidence: number;
   livenessScore: number;
   synced: boolean;
 }
 
-const EMBEDDINGS_KEY = 'face_embeddings';
-const ATTENDANCE_KEY = 'attendance_records';
+const EMPLOYEES_KEY = 'pehchan_employees';
+const ATTENDANCE_KEY = 'pehchan_attendance';
+const LANGUAGE_KEY = 'pehchan_language';
 
-// Save a new face embedding for a user
-export async function saveEmbedding(user: UserEmbedding): Promise<void> {
+// ─── Employee Operations ───────────────────────────────────────
+
+export async function saveEmployee(employee: Employee): Promise<void> {
   try {
-    const existing = await getAllEmbeddings();
-    const updated = existing.filter(e => e.userId !== user.userId);
-    updated.push(user);
-    await AsyncStorage.setItem(EMBEDDINGS_KEY, JSON.stringify(updated));
-    console.log('Embedding saved for:', user.name);
+    const existing = await getAllEmployees();
+    const updated = existing.filter(e => e.userId !== employee.userId);
+    updated.push(employee);
+    await AsyncStorage.setItem(EMPLOYEES_KEY, JSON.stringify(updated));
   } catch (e) {
-    console.error('Failed to save embedding:', e);
+    console.error('Failed to save employee:', e);
   }
 }
 
-// Get all stored face embeddings
-export async function getAllEmbeddings(): Promise<UserEmbedding[]> {
+export async function getAllEmployees(): Promise<Employee[]> {
   try {
-    const data = await AsyncStorage.getItem(EMBEDDINGS_KEY);
+    const data = await AsyncStorage.getItem(EMPLOYEES_KEY);
     return data ? JSON.parse(data) : [];
   } catch (e) {
     return [];
   }
 }
 
-// Save an attendance record
-export async function saveAttendanceRecord(
-  record: AttendanceRecord,
-): Promise<void> {
+export async function getEmployeeById(userId: string): Promise<Employee | null> {
+  const employees = await getAllEmployees();
+  return employees.find(e => e.userId === userId) || null;
+}
+
+export async function deleteEmployee(userId: string): Promise<void> {
+  try {
+    const existing = await getAllEmployees();
+    const updated = existing.filter(e => e.userId !== userId);
+    await AsyncStorage.setItem(EMPLOYEES_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.error('Failed to delete employee:', e);
+  }
+}
+
+// ─── Attendance Operations ─────────────────────────────────────
+
+export async function saveAttendanceRecord(record: AttendanceRecord): Promise<void> {
   try {
     const existing = await getAllAttendanceRecords();
     existing.push(record);
@@ -56,7 +78,6 @@ export async function saveAttendanceRecord(
   }
 }
 
-// Get all attendance records
 export async function getAllAttendanceRecords(): Promise<AttendanceRecord[]> {
   try {
     const data = await AsyncStorage.getItem(ATTENDANCE_KEY);
@@ -66,13 +87,28 @@ export async function getAllAttendanceRecords(): Promise<AttendanceRecord[]> {
   }
 }
 
-// Get unsynced records for AWS upload
+export async function getAttendanceByDate(date: string): Promise<AttendanceRecord[]> {
+  const all = await getAllAttendanceRecords();
+  return all.filter(r => r.date === date);
+}
+
+export async function getAttendanceDates(): Promise<string[]> {
+  const all = await getAllAttendanceRecords();
+  const dates = [...new Set(all.map(r => r.date))];
+  return dates.sort().reverse();
+}
+
+export async function hasMarkedAttendanceToday(userId: string): Promise<boolean> {
+  const today = new Date().toISOString().split('T')[0];
+  const records = await getAttendanceByDate(today);
+  return records.some(r => r.userId === userId);
+}
+
 export async function getUnsyncedRecords(): Promise<AttendanceRecord[]> {
   const all = await getAllAttendanceRecords();
   return all.filter(r => !r.synced);
 }
 
-// Mark records as synced and purge embedding data
 export async function markAsSyncedAndPurge(ids: string[]): Promise<void> {
   try {
     const all = await getAllAttendanceRecords();
@@ -85,7 +121,37 @@ export async function markAsSyncedAndPurge(ids: string[]): Promise<void> {
   }
 }
 
-// Clear all data (for testing)
+// ─── Language ──────────────────────────────────────────────────
+
+export async function saveLanguage(lang: string): Promise<void> {
+  await AsyncStorage.setItem(LANGUAGE_KEY, lang);
+}
+
+export async function getLanguage(): Promise<string> {
+  const lang = await AsyncStorage.getItem(LANGUAGE_KEY);
+  return lang || 'en';
+}
+
+// ─── Stats ─────────────────────────────────────────────────────
+
+export async function getTodayStats(): Promise<{
+  present: number;
+  total: number;
+  pending: number;
+}> {
+  const today = new Date().toISOString().split('T')[0];
+  const todayRecords = await getAttendanceByDate(today);
+  const employees = await getAllEmployees();
+  const unsynced = await getUnsyncedRecords();
+  return {
+    present: todayRecords.length,
+    total: employees.length,
+    pending: unsynced.length,
+  };
+}
+
+// ─── Clear All ─────────────────────────────────────────────────
+
 export async function clearAllData(): Promise<void> {
-  await AsyncStorage.multiRemove([EMBEDDINGS_KEY, ATTENDANCE_KEY]);
+  await AsyncStorage.multiRemove([EMPLOYEES_KEY, ATTENDANCE_KEY]);
 }

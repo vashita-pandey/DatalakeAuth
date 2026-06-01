@@ -6,6 +6,7 @@ react {
 }
 
 def enableProguardInReleaseBuilds = true
+def enableSeparateBuildPerCPUArchitecture = false
 def jscFlavor = 'org.webkit:android-jsc:+'
 
 android {

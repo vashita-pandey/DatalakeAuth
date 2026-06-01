@@ -50,5 +50,5 @@ export async function compareFaceEmbeddings(
 
 // Check if similarity score means a match
 export function isMatch(similarity: number): boolean {
-  return similarity >= 0.65;
+  return similarity >= 0.3;
 }
