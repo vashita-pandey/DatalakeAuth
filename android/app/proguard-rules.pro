@@ -1,10 +1,42 @@
-# Add project specific ProGuard rules here.
-# By default, the flags in this file are appended to flags specified
-# in /usr/local/Cellar/android-sdk/24.3.3/tools/proguard/proguard-android.txt
-# You can edit the include path and order by changing the proguardFiles
-# directive in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# React Native
+-keep class com.facebook.react.** { *; }
+-keep class com.facebook.hermes.** { *; }
+-keep class com.facebook.jni.** { *; }
 
-# Add any project specific keep options here:
+# TFLite - critical, must not be stripped
+-keep class org.tensorflow.** { *; }
+-keep class org.tensorflow.lite.** { *; }
+-keep class org.tensorflow.lite.gpu.** { *; }
+-dontwarn org.tensorflow.**
+
+# Our native module
+-keep class com.datalakeauth.TFLiteModule { *; }
+-keep class com.datalakeauth.TFLitePackage { *; }
+-keep class com.datalakeauth.** { *; }
+
+# VisionCamera
+-keep class com.mrousavy.camera.** { *; }
+-dontwarn com.mrousavy.camera.**
+
+# Reanimated
+-keep class com.swmansion.reanimated.** { *; }
+-dontwarn com.swmansion.reanimated.**
+
+# Worklets
+-keep class com.swmansion.worklets.** { *; }
+
+# Gesture Handler
+-keep class com.swmansion.gesturehandler.** { *; }
+
+# AsyncStorage
+-keep class com.reactnativecommunity.asyncstorage.** { *; }
+
+# NetInfo
+-keep class com.reactnativecommunity.netinfo.** { *; }
+
+# General Android
+-keepattributes *Annotation*
+-keepattributes SourceFile,LineNumberTable
+-keep public class * extends java.lang.Exception
+-dontwarn java.lang.invoke.*
+-dontwarn **$$Lambda$*

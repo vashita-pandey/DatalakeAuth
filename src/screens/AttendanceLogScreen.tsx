@@ -6,12 +6,14 @@ import {
   FlatList,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {useFocusEffect} from '@react-navigation/native';
 import {
   getAttendanceByDate,
   getAttendanceDates,
+  getAllAttendanceRecords,
   AttendanceRecord,
 } from '../services/StorageService';
 
@@ -24,6 +26,8 @@ const AttendanceLogScreen: React.FC<Props> = ({navigation}) => {
   const [dates, setDates] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState('');
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [totalRecords, setTotalRecords] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -32,13 +36,19 @@ const AttendanceLogScreen: React.FC<Props> = ({navigation}) => {
   );
 
   const loadDates = async () => {
+    setLoading(true);
+    const all = await getAllAttendanceRecords();
+    setTotalRecords(all.length);
     const d = await getAttendanceDates();
     setDates(d);
     if (d.length > 0) {
       setSelectedDate(d[0]);
       const r = await getAttendanceByDate(d[0]);
       setRecords(r);
+    } else {
+      setRecords([]);
     }
+    setLoading(false);
   };
 
   const handleDateSelect = async (date: string) => {
@@ -48,9 +58,13 @@ const AttendanceLogScreen: React.FC<Props> = ({navigation}) => {
   };
 
   const formatDate = (dateStr: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    if (dateStr === today) return 'Today';
+    if (dateStr === yesterday) return 'Yesterday';
     const d = new Date(dateStr);
     return d.toLocaleDateString('en-IN', {
-      weekday: 'short', day: 'numeric', month: 'short',
+      day: 'numeric', month: 'short', year: 'numeric',
     });
   };
 
@@ -58,10 +72,6 @@ const AttendanceLogScreen: React.FC<Props> = ({navigation}) => {
     return new Date(iso).toLocaleTimeString('en-IN', {
       hour: '2-digit', minute: '2-digit',
     });
-  };
-
-  const isToday = (dateStr: string) => {
-    return dateStr === new Date().toISOString().split('T')[0];
   };
 
   const renderRecord = ({item}: {item: AttendanceRecord}) => (
@@ -87,6 +97,23 @@ const AttendanceLogScreen: React.FC<Props> = ({navigation}) => {
     </View>
   );
 
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Text style={styles.backBtn}>← {t('back')}</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>{t('attendanceLog')}</Text>
+          <View style={{width: 60}} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator color="#00E5FF" size="large" />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -94,13 +121,16 @@ const AttendanceLogScreen: React.FC<Props> = ({navigation}) => {
           <Text style={styles.backBtn}>← {t('back')}</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{t('attendanceLog')}</Text>
-        <View style={{width: 60}} />
+        <Text style={styles.totalCount}>{totalRecords} total</Text>
       </View>
 
       {dates.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>📋</Text>
           <Text style={styles.emptyText}>{t('noRecords')}</Text>
+          <Text style={styles.emptySubText}>
+            Attendance records will appear here after marking attendance
+          </Text>
         </View>
       ) : (
         <>
@@ -121,35 +151,50 @@ const AttendanceLogScreen: React.FC<Props> = ({navigation}) => {
                   styles.dateChipText,
                   selectedDate === date && styles.dateChipTextActive,
                 ]}>
-                  {isToday(date) ? 'Today' : formatDate(date)}
+                  {formatDate(date)}
+                </Text>
+                <Text style={[
+                  styles.dateChipCount,
+                  selectedDate === date && styles.dateChipCountActive,
+                ]}>
+                  {date === selectedDate ? records.length : ''}
                 </Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
 
           {/* Selected date summary */}
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryNumber}>{records.length}</Text>
-              <Text style={styles.summaryLabel}>{t('present')}</Text>
+          {records.length > 0 && (
+            <View style={styles.summaryRow}>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryNumber}>{records.length}</Text>
+                <Text style={styles.summaryLabel}>{t('present')}</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={[styles.summaryNumber, {color: '#00E676'}]}>
+                  {records.filter(r => r.synced).length}
+                </Text>
+                <Text style={styles.summaryLabel}>{t('synced')}</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={[styles.summaryNumber, {color: '#FFAB00'}]}>
+                  {records.filter(r => !r.synced).length}
+                </Text>
+                <Text style={styles.summaryLabel}>{t('pending')}</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={[styles.summaryNumber, {color: '#AAA'}]}>
+                  {Math.round(records.reduce((a, b) => a + b.confidence, 0) / records.length)}%
+                </Text>
+                <Text style={styles.summaryLabel}>Avg Match</Text>
+              </View>
             </View>
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryNumber}>
-                {records.filter(r => r.synced).length}
-              </Text>
-              <Text style={styles.summaryLabel}>{t('synced')}</Text>
-            </View>
-            <View style={styles.summaryCard}>
-              <Text style={[styles.summaryNumber, {color: '#FFAB00'}]}>
-                {records.filter(r => !r.synced).length}
-              </Text>
-              <Text style={styles.summaryLabel}>{t('pending')}</Text>
-            </View>
-          </View>
+          )}
 
           {/* Records list */}
           {records.length === 0 ? (
             <View style={styles.noRecords}>
+              <Text style={styles.emptyIcon}>🗓️</Text>
               <Text style={styles.noRecordsText}>{t('noRecords')}</Text>
             </View>
           ) : (
@@ -181,6 +226,10 @@ const styles = StyleSheet.create({
   },
   backBtn: {color: '#00E5FF', fontSize: 16},
   title: {color: '#FFF', fontSize: 18, fontWeight: '700'},
+  totalCount: {color: '#555', fontSize: 12},
+  loadingContainer: {
+    flex: 1, justifyContent: 'center', alignItems: 'center',
+  },
   dateScroll: {
     paddingHorizontal: 20,
     paddingVertical: 16,
@@ -194,6 +243,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2A2A2A',
     marginRight: 8,
+    alignItems: 'center',
   },
   dateChipActive: {
     backgroundColor: 'rgba(0,229,255,0.1)',
@@ -201,24 +251,26 @@ const styles = StyleSheet.create({
   },
   dateChipText: {color: '#666', fontSize: 13},
   dateChipTextActive: {color: '#00E5FF', fontWeight: '600'},
+  dateChipCount: {color: '#444', fontSize: 10, marginTop: 2},
+  dateChipCountActive: {color: '#00E5FF'},
   summaryRow: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    gap: 12,
+    gap: 8,
     marginBottom: 16,
   },
   summaryCard: {
     flex: 1,
     backgroundColor: '#1A1A1A',
     borderRadius: 12,
-    padding: 14,
+    padding: 12,
     alignItems: 'center',
   },
   summaryNumber: {
-    color: '#00E5FF', fontSize: 24,
+    color: '#00E5FF', fontSize: 20,
     fontWeight: 'bold',
   },
-  summaryLabel: {color: '#666', fontSize: 11, marginTop: 4},
+  summaryLabel: {color: '#666', fontSize: 10, marginTop: 4},
   list: {paddingHorizontal: 20, paddingBottom: 80},
   recordCard: {
     flexDirection: 'row',
@@ -253,13 +305,14 @@ const styles = StyleSheet.create({
   syncDotPending: {backgroundColor: '#FFAB00'},
   empty: {
     flex: 1, justifyContent: 'center',
-    alignItems: 'center', gap: 12,
+    alignItems: 'center', gap: 12, padding: 40,
   },
   emptyIcon: {fontSize: 48},
-  emptyText: {color: '#555', fontSize: 15},
+  emptyText: {color: '#555', fontSize: 15, textAlign: 'center'},
+  emptySubText: {color: '#333', fontSize: 12, textAlign: 'center'},
   noRecords: {
     flex: 1, justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center', gap: 8,
   },
   noRecordsText: {color: '#555', fontSize: 15},
 });

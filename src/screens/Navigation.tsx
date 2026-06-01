@@ -85,12 +85,13 @@ const AppNavigator = () => {
 };
 
 const styles = StyleSheet.create({
-  tabBar: {
+ tabBar: {
     backgroundColor: '#0D0D0D',
     borderTopColor: '#1A1A1A',
     borderTopWidth: 1,
-    height: 65,
-    paddingBottom: 8,
+    height: 85,
+    paddingBottom: 28,
+    paddingTop: 8,
   },
   tabIcon: {alignItems: 'center', gap: 2},
   tabIconText: {fontSize: 22, opacity: 0.5},
