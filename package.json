@@ -12,9 +12,12 @@
   "dependencies": {
     "@react-native-async-storage/async-storage": "^1.23.1",
     "@react-native-community/netinfo": "^12.0.1",
+    "@react-native-firebase/app": "^24.0.0",
+    "@react-native-firebase/firestore": "^24.0.0",
     "@react-navigation/bottom-tabs": "^6.6.1",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/stack": "^6.4.1",
+    "firebase": "^12.14.0",
     "i18next": "^26.3.0",
     "react": "18.2.0",
     "react-i18next": "^17.0.8",
