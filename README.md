@@ -1,189 +1,214 @@
-# DatalakeAuth — Offline Face Recognition & Liveness Detection
+# PEHCHAN 👁️
+### Personnel Entry & Human-resource Check-in through Hybrid AI Network
 
-![React Native](https://img.shields.io/badge/React%20Native-0.74.5-blue)
-![TFLite](https://img.shields.io/badge/TensorFlow%20Lite-2.12.0-orange)
-![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS-green)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+[![Version](https://img.shields.io/badge/version-1.0.1-blue)](https://github.com/vashita-pandey/PEHCHAN/releases)
+[![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS-green)](https://github.com/vashita-pandey/PEHCHAN)
+[![React Native](https://img.shields.io/badge/React%20Native-0.74.5-61DAFB)](https://reactnative.dev)
+[![TFLite](https://img.shields.io/badge/TensorFlow%20Lite-2.12.0-FF6F00)](https://tensorflow.org/lite)
+[![License](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 
-## Overview
-DatalakeAuth is a lightweight, fully offline facial recognition and liveness detection system built for the Datalake 3.0 React Native app. It authenticates field personnel in zero-network zones using on-device AI inference.
+> Offline biometric attendance system for field personnel. Works in zero-network zones using on-device AI.
 
----
+## 📥 Download
 
-## Key Metrics
-| Metric | Our Result | Hackathon Target |
-|--------|-----------|-----------------|
-| AI Model Size | 4.6 MB | ~20 MB |
-| End-to-end Auth | < 200ms | < 1000ms |
-| Face Recognition Accuracy | 99.5% (LFW) | > 95% |
-| Liveness Detection Accuracy | 98.2% | > 90% |
-| Min Android Version | Android 8.0 (API 26) | Android 8.0+ |
-| APK Size (Release) | 28 MB | — |
+**[⬇️ Download PEHCHAN v1.0.1 APK](https://github.com/vashita-pandey/PEHCHAN/releases/download/v1.0.1/app-release.apk)**
+
+> Android 8.0+ required. Enable "Install unknown apps" in settings before installing.
 
 ---
 
-## Architecture
-Camera Frame
+## 🎯 Problem Statement
+
+Field personnel in remote locations need to mark attendance without internet connectivity. Traditional systems fail in zero-network zones. PEHCHAN solves this with fully offline facial recognition and liveness detection.
+
+---
+
+## ✨ Features
+
+- 🔒 **Fully Offline** — No internet required for authentication
+- 👁️ **Face Recognition** — MobileFaceNet with 99.5% accuracy
+- 🎭 **Liveness Detection** — Two-stage anti-spoofing (passive + active challenge)
+- 👥 **Employee Management** — Enroll with name, ID, department, designation
+- 📋 **Attendance Log** — Date-wise records with sync status
+- 🌐 **Auto Sync** — Firebase Firestore sync when network restored
+- 🗑️ **Data Purge** — Local data purged after successful sync
+- 🇮🇳 **Hindi/English** — Full bilingual support
+- ⚡ **Fast** — End-to-end authentication in ~200ms
+- 📱 **Lightweight** — 4.6 MB AI models (target was 20 MB)
+
+---
+
+## 📊 Performance Benchmarks
+
+| Metric | Result | Target |
+|--------|--------|--------|
+| AI Model Size | **4.6 MB** | ~20 MB |
+| Face Recognition Inference | **131ms** | < 200ms |
+| Liveness Detection | **45ms** | < 200ms |
+| End-to-end Authentication | **~200ms** | < 1000ms |
+| Face Recognition Accuracy | **99.5%** (LFW) | > 95% |
+| Liveness Detection Accuracy | **98.2%** | > 90% |
+| Min Android Version | **Android 8.0** | Android 8.0+ |
+
+---
+
+## 🏗️ Architecture
+Camera Frame (VisionCamera)
 ↓
-VisionCamera (React Native)
+Native Bridge (Kotlin/JSI)
 ↓
-Native Bridge (JSI)
+┌─────────────────────────────────┐
+│        TFLite Inference         │
+│  BlazeFace (229 KB) + MobileFaceNet (4.4 MB)  │
+│  CLAHE Lighting Normalization   │
+│  L2-Normalized Embeddings       │
+└─────────────────────────────────┘
 ↓
-┌─────────────────────────────┐
-│     TFLite Inference        │
-│  ┌──────────┐ ┌──────────┐  │
-│  │ BlazeFace│ │MobileFace│  │
-│  │ 229 KB   │ │Net 4.4MB │  │
-│  └──────────┘ └──────────┘  │
-└─────────────────────────────┘
+Two-Stage Liveness Detection
+(Passive texture + Active challenge)
 ↓
-Cosine Similarity Matching
+Cosine Similarity Matching (threshold: 0.30)
 ↓
-AsyncStorage (Encrypted Local DB)
+AsyncStorage (Encrypted local DB)
 ↓
-AWS Sync (when network restored)
+Firebase Firestore (when online)
 
 ---
 
-## Models Used
-| Model | Purpose | Size | Accuracy |
-|-------|---------|------|----------|
-| BlazeFace | Face detection | 229 KB | — |
-| MobileFaceNet (INT8) | Face recognition | 4.4 MB | 99.5% LFW |
-| MiniFASNet-style | Liveness detection | Passive + Active | 98.2% |
+## 🤖 AI Models
+
+| Model | Purpose | Size | Source |
+|-------|---------|------|--------|
+| BlazeFace | Face detection | 229 KB | MediaPipe |
+| MobileFaceNet (INT8) | Face recognition | 4.4 MB | Custom trained |
+| MiniFASNet-style | Liveness detection | Passive + Active | Custom |
+
+### Model Innovations
+- **INT8 Quantization** — 4x size reduction with <1% accuracy loss
+- **CLAHE Normalization** — Handles harsh sunlight, shadows, low light
+- **L2 Normalization** — Consistent embedding comparison across devices
+- **Two-stage Liveness** — Passive-first (zero friction) + Active fallback
 
 ---
 
-## Features
-- ✅ Fully offline — no internet required for authentication
-- ✅ Real-time face detection and recognition
-- ✅ Two-stage liveness detection (passive texture + active challenge)
-- ✅ CLAHE lighting normalization for outdoor conditions
-- ✅ L2-normalized face embeddings with cosine similarity
-- ✅ AES-encrypted local storage
-- ✅ Auto-sync to AWS when network restored
-- ✅ Local data purge after successful sync
-- ✅ Performance benchmark screen
+## 📱 Screens
+
+| Screen | Description |
+|--------|-------------|
+| Splash | PEHCHAN branding with AI model loading |
+| Home | Dashboard with today's stats and quick actions |
+| Attendance | Auto-identify and mark attendance via face scan |
+| Enroll | Register new employee with form + face capture |
+| Employees | Directory with search and delete |
+| Attendance Log | Date-wise records with sync status |
+| Settings | Language toggle, sync, clear data |
+| Benchmark | Live performance test against hackathon targets |
 
 ---
 
-## Tech Stack
-- **Framework:** React Native 0.74.5
-- **AI Runtime:** TensorFlow Lite 2.12.0
-- **Camera:** react-native-vision-camera v4
-- **Storage:** @react-native-async-storage/async-storage
-- **Network:** @react-native-community/netinfo
-- **Language (Android):** Kotlin
-- **Language (iOS):** Swift
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | React Native 0.74.5 |
+| Language (Android) | Kotlin |
+| Language (iOS) | Swift |
+| AI Runtime | TensorFlow Lite 2.12.0 |
+| Camera | react-native-vision-camera v4 |
+| Navigation | React Navigation 6 |
+| Storage | AsyncStorage |
+| Cloud Sync | Firebase Firestore |
+| Network | @react-native-community/netinfo |
+| i18n | i18next + react-i18next |
 
 ---
 
-## Project Structure
-DatalakeAuth/
-├── android/
-│   └── app/src/main/
-│       ├── assets/
-│       │   ├── face_detection.tflite    # BlazeFace model
-│       │   └── face_recognition.tflite  # MobileFaceNet model
-│       └── java/com/datalakeauth/
-│           ├── TFLiteModule.kt          # Native TFLite bridge
-│           └── TFLitePackage.kt         # React Native package
-├── ios/
-│   ├── TFLiteModule.swift               # iOS TFLite bridge
-│   ├── TFLiteModule.m                   # Objective-C bridge
-│   ├── face_detection.tflite
-│   └── face_recognition.tflite
-└── src/
-├── screens/
-│   ├── CameraScreen.tsx             # Main auth screen
-│   ├── LivenessScreen.tsx           # Liveness challenge
-│   ├── AttendanceScreen.tsx         # Attendance log
-│   └── BenchmarkScreen.tsx          # Performance tests
-└── services/
-├── TFLiteBridge.ts              # JS-Native bridge
-├── StorageService.ts            # Local storage
-└── SyncService.ts              # AWS sync
-
----
-
-## Android Setup
+## 🚀 Setup & Installation
 
 ### Prerequisites
 - Node.js 20+
 - JDK 17
-- Android Studio
-- Android SDK API 34+
+- Android Studio + SDK API 34+
+- React Native CLI
 
-### Installation
+### Android
 ```bash
-# Clone repo
-git clone https://github.com/vashita-pandey/DatalakeAuth.git
-cd DatalakeAuth
-
-# Install dependencies
+git clone https://github.com/vashita-pandey/PEHCHAN.git
+cd PEHCHAN
 npm install
-
-# Run on Android
 npx react-native run-android
 ```
 
----
-
-## iOS Setup
-
-### Prerequisites
-- macOS with Xcode 14+
-- CocoaPods
-- Apple Developer account
-
-### Installation
+### iOS (requires macOS)
 ```bash
-# Install dependencies
 npm install
-
-# Install iOS pods
 cd ios && pod install && cd ..
-
-# Run on iOS
 npx react-native run-ios
 ```
 
 ---
 
-## AWS Sync Configuration
-Replace the placeholder URL in `src/services/SyncService.ts`:
-```typescript
-const AWS_ENDPOINT = 'https://your-api-gateway-url.amazonaws.com/prod/attendance';
-```
+## ☁️ Firebase Configuration
 
-Set up AWS infrastructure:
-1. API Gateway → Lambda → DynamoDB
-2. Cognito for device authentication
-3. S3 for optional face image backup
+Replace the config in `src/services/FirebaseService.ts` with your own Firebase project credentials.
+
+Set up Firestore with collection `attendance` in test mode for development.
 
 ---
 
-## Performance Benchmarks
-Tested on OnePlus Nord CE3 (Snapdragon 782G, 8GB RAM):
+## 🔐 Security Notes
 
-| Test | Result |
-|------|--------|
-| Model initialization | 8ms |
-| Face detection | < 10ms |
-| Face recognition inference | 131ms |
-| Liveness detection | 45ms |
-| End-to-end authentication | < 200ms |
+- Face embeddings stored locally as 128-dimensional float vectors
+- No raw face images persisted on device
+- AES encryption on local storage
+- Data purged after successful cloud sync
+- API keys should be moved to environment variables in production
 
 ---
 
-## Liveness Detection
-Two-stage anti-spoofing:
-1. **Passive:** Texture analysis detects flat surfaces (photos, screens)
-2. **Active:** Random challenge from {blink, smile, turn left, turn right}
-
-Defeats: printed photos, screen replays, static images.
+## 📁 Project Structure
+PEHCHAN/
+├── android/
+│   └── app/src/main/
+│       ├── assets/
+│       │   ├── face_detection.tflite    # BlazeFace (229 KB)
+│       │   └── face_recognition.tflite  # MobileFaceNet (4.4 MB)
+│       └── java/com/datalakeauth/
+│           ├── TFLiteModule.kt          # Native inference bridge
+│           └── TFLitePackage.kt         # RN package registration
+├── ios/
+│   ├── TFLiteModule.swift               # iOS Swift bridge
+│   └── TFLiteModule.m                   # ObjC bridge header
+└── src/
+├── i18n/index.ts                    # Hindi/English translations
+├── screens/
+│   ├── SplashScreen.tsx
+│   ├── HomeScreen.tsx
+│   ├── AttendanceScreen.tsx         # Core auth screen
+│   ├── EnrollScreen.tsx
+│   ├── EmployeesScreen.tsx
+│   ├── AttendanceLogScreen.tsx
+│   ├── SettingsScreen.tsx
+│   ├── LivenessScreen.tsx
+│   └── BenchmarkScreen.tsx
+└── services/
+├── TFLiteBridge.ts             # JS-Native bridge
+├── StorageService.ts           # Local persistence
+├── SyncService.ts              # Network + sync logic
+└── FirebaseService.ts          # Firestore upload
 
 ---
 
-## License
-MIT — All dependencies are open source, no additional licenses required.
+## 🏆 Hackathon 7.0
+
+Built for **Hackathon 7.0** — *"Develop a mobile based secure offline facial recognition and liveness detection system for remote locations"*
+
+- **Submission:** June 5, 2026
+- **Category:** AI/ML + Mobile Development
+- **Team:** Vashita Pandey
+
+---
+
+## 📄 License
+
+MIT — All dependencies are open source. No additional licenses required.
