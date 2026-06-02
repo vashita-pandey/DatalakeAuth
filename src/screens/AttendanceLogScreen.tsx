@@ -58,14 +58,10 @@ const AttendanceLogScreen: React.FC<Props> = ({navigation}) => {
   };
 
   const formatDate = (dateStr: string) => {
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-    if (dateStr === today) return 'Today';
-    if (dateStr === yesterday) return 'Yesterday';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-IN', {
-      day: 'numeric', month: 'short', year: 'numeric',
-    });
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-IN', {
+    day: 'numeric', month: 'long', year: 'numeric',
+  });
   };
 
   const formatTime = (iso: string) => {
